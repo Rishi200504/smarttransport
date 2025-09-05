@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Traffic Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #2c3e50;
+            --secondary: #4ecdc4;
+            --accent: #ff6b6b;
+            --light: #f5f7fa;
+            --dark: #1a2530;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --danger: #F44336;
+        }
+        
+        body {
+            background-color: var(--light);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            min-height: 100vh;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo i {
+            font-size: 2rem;
+        }
+        
+        .logo h1 {
+            font-weight: 600;
+            font-size: 1.8rem;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: #ddd;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        nav a:hover {
+            color: var(--secondary);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+        
+        .sidebar {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .sidebar h2 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--secondary);
+        }
+        
+        .stats-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-3px);
+            background: #edf2f7;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header h2 {
+            color: var(--primary);
+        }
+        
+        .card-header i {
+            color: var(--secondary);
+            font-size: 1.5rem;
+        }
+        
+        .traffic-map {
+            grid-column: 1 / -1;
+            height: 300px;
+            background: var(--primary);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .map-overlay {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+        
+        .traffic-light {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .low {
+            background: var(--success);
+        }
+        
+        .medium {
+            background: var(--warning);
+        }
+        
+        .high {
+            background: var(--danger);
+        }
+        
+        .congestion-list {
+            list-style: none;
+        }
+        
+        .congestion-list li {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+        
+        .congestion-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .chart-container {
+            height: 250px;
+            position: relative;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3bb4ac;
+        }
+        
+        .btn-secondary {
+            background: #edf2f7;
+            color: var(--primary);
+        }
+        
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #e53935;
+        }
+        
+        footer {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            padding: 2rem;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-header h2 {
+            color: var(--primary);
+        }
+        
+        .close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .close:hover {
+            color: var(--danger);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--primary);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        .emergency-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .emergency-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .emergency-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .emergency-btn i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .police {
+            color: #3498db;
+        }
+        
+        .ambulance {
+            color: var(--danger);
+        }
+        
+        .fire {
+            color: #ff9800;
+        }
+        
+        .sos {
+            color: var(--accent);
+        }
+        
+        .settings-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .settings-option:last-child {
+            border-bottom: none;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--secondary);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .emergency-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Simple chart bars */
+        .chart-bar {
+            display: flex;
+            align-items: flex-end;
+            height: 200px;
+            gap: 1.5%;
+            padding: 0 1rem;
+        }
+        
+        .bar {
+            flex: 1;
+            background: var(--secondary);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+        }
+        
+        .bar-label {
+            position: absolute;
+            bottom: -25px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #718096;
+        }
+        
+        /* Login page */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            padding: 1rem;
+        }
+        
+        .login-box {
+            background: white;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-header h1 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-header p {
+            color: #718096;
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #718096;
+        }
+        
+        .login-footer a {
+            color: var(--secondary);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen (initially visible) -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <h1><i class="fas fa-traffic-light"></i> Traffic Control</h1>
+                <p>Smart Traffic Management System</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter your username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password">
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%" onclick="login()">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+            
+            <div class="login-footer">
+                <p>Don't have an account? <a href="#" onclick="showRegister()">Register</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application (initially hidden) -->
+    <div id="appContainer" class="container" style="display: none">
+        <header>
+            <div class="logo">
+                <i class="fas fa-traffic-light"></i>
+                <h1>Smart Traffic Management</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="#"><i class="fas fa-map-marked-alt"></i> Traffic Map</a></li>
+                    <li><a href="#" onclick="showSettings()"><i class="fas fa-cog"></i> Settings</a></li>
+                    <li><a href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+        
+        <div class="main-content">
+            <aside class="sidebar">
+                <h2>Traffic Overview</h2>
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <span>Total Vehicles Tracked</span>
+                        <strong>12,483</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Average Speed</span>
+                        <strong>38 km/h</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Congestion Level</span>
+                        <strong>Moderate</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Active Incidents</span>
+                        <strong>3</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Smart Traffic Lights</span>
+                        <strong>42/50</strong>
+                    </div>
+                </div>
+                
+                <h2 style="margin-top: 2rem;">Emergency Contacts</h2>
+                <div class="emergency-grid">
+                    <div class="emergency-btn" onclick="callEmergency('police')">
+                        <i class="fas fa-shield-alt police"></i>
+                        <span>Police</span>
+                    </div>
+                    <div class="emergency-btn" onclick="callEmergency('ambulance')">
+                        <i class="fas fa-ambulance ambulance"></i>
+                        <span>Ambulance</span>
+                    </div>
+                    <div class="emergency-btn" onclick="callEmergency('fire')">
+                        <i class="fas fa-fire-extinguisher fire"></i>
+                        <span>Fire Department</span>
+                    </div>
+                    <div class="emergency-btn" onclick="triggerSOS()">
+                        <i class="fas fa-life-ring sos"></i>
+                        <span>SOS Emergency</span>
+                    </div>
+                </div>
+                
+                <div class="controls" style="margin-top: 2rem;">
+                    <button class="btn btn-secondary" onclick="showHelp()">
+                        <i class="fas fa-question-circle"></i> Help
+                    </button>
+                    <button class="btn btn-primary" onclick="showReports()">
+                        <i class="fas fa-chart-bar"></i> Reports
+                    </button>
+                </div>
+            </aside>
+            
+            <main class="dashboard">
+                <div class="traffic-map">
+                    <div class="map-overlay">
+                        <h3>City Traffic Overview</h3>
+                        <div>
+                            <span class="traffic-light low"></span> Low 
+                            <span class="traffic-light medium"></span> Medium 
+                            <span class="traffic-light high"></span> High
+                        </div>
+                    </div>
+                    <div id="map"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Congestion Alerts</h2>
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <ul class="congestion-list">
+                        <li>
+                            <span class="traffic-light high"></span>
+                            <div>
+                                <strong>Main St & 5th Ave</strong>
+                                <p>15 min delay • 2km queue</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="traffic-light medium"></span>
+                            <div>
+                                <strong>Central Bridge</strong>
+                                <p>8 min delay • 1km queue</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="traffic-light high"></span>
+                            <div>
+                                <strong>North Ring Road</strong>
+                                <p>20 min delay • 3km queue</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Traffic Flow</h2>
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-bar">
+                            <div class="bar" style="height: 70%;">
+                                <div class="bar-label">Mon</div>
+                            </div>
+                            <div class="bar" style="height: 85%;">
+                                <div class="bar-label">Tue</div>
+                            </div>
+                            <div class="bar" style="height: 78%;">
+                                <div class="bar-label">Wed</div>
+                            </div>
+                            <div class="bar" style="height: 90%;">
+                                <div class="bar-label">Thu</div>
+                            </div>
+                            <div class="bar" style="height: 65%;">
+                                <div class="bar-label">Fri</div>
+                            </div>
+                            <div class="bar" style="height: 40%;">
+                                <div class="bar-label">Sat</div>
+                            </div>
+                            <div class="bar" style="height: 30%;">
+                                <div class="bar-label">Sun</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Smart Signals</h2>
+                        <i class="fas fa-traffic-light"></i>
+                    </div>
+                    <ul class="congestion-list">
+                        <li>
+                            <i class="fas fa-check-circle" style="color: #4CAF50;"></i>
+                            <div>
+                                <strong>Signal #42 - Downtown</strong>
+                                <p>Adaptive mode • Optimized</p>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fas fa-exclamation-circle" style="color: #FFC107;"></i>
+                            <div>
+                                <strong>Signal #18 - Midtown</strong>
+                                <p>Manual override • Needs attention</p>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle" style="color: #4CAF50;"></i>
+                            <div>
+                                <strong>Signal #29 - Uptown</strong>
+                                <p>Adaptive mode • Optimized</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </main>
+        </div>
+        
+        <footer>
+            <p>Smart Traffic Management System | © 2023 City Traffic Authority</p>
+            <p>Real-time data updated every 2 minutes</p>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>System Settings</h2>
+                <span class="close" onclick="closeModal('settingsModal')">&times;</span>
+            </div>
+            
+            <div class="settings-option">
+                <div>
+                    <h3>Auto Traffic Optimization</h3>
+                    <p>Enable smart traffic light adjustments</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="settings-option">
+                <div>
+                    <h3>Incident Alerts</h3>
+                    <p>Receive notifications for traffic incidents</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="settings-option">
+                <div>
+                    <h3>Congestion Predictions</h3>
+                    <p>Use AI to predict traffic congestion</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="settings-option">
+                <div>
+                    <h3>Emergency Mode</h3>
+                    <p>Priority routing for emergency vehicles</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="controls" style="margin-top: 2rem;">
+                <button class="btn btn-secondary" onclick="closeModal('settingsModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Help & Support</h2>
+                <span class="close" onclick="closeModal('helpModal')">&times;</span>
+            </div>
+            
+            <div class="form-group">
+                <h3>Emergency Contacts</h3>
+                <p>For immediate assistance, use the emergency buttons on the left panel:</p>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li>Police: 911</li>
+                    <li>Ambulance: 912</li>
+                    <li>Fire Department: 913</li>
+                    <li>SOS: Will notify all emergency services</li>
+                </ul>
+            </div>
+            
+            <div class="form-group">
+                <h3>Traffic Management Guide</h3>
+                <p>The system provides real-time traffic monitoring, congestion alerts, and smart signal control to optimize urban traffic flow.</p>
+            </div>
+            
+            <div class="form-group">
+                <h3>Contact Support</h3>
+                <p>Email: support@trafficmanagement.gov<br>Phone: 1-800-TRAFFIC</p>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" onclick="closeModal('helpModal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sosModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-exclamation-triangle" style="color: var(--danger)"></i> SOS Emergency</h2>
+                <span class="close" onclick="closeModal('sosModal')">&times;</span>
+            </div>
+            
+            <div class="form-group">
+                <p>Your SOS alert has been activated. Emergency services have been notified of your location and situation.</p>
+                <p>Please stay on the line for further instructions.</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="emergencyType">Emergency Type</label>
+                <select id="emergencyType" class="form-control">
+                    <option>Accident</option>
+                    <option>Medical Emergency</option>
+                    <option>Fire</option>
+                    <option>Crime in Progress</option>
+                    <option>Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="emergencyDetails">Additional Details</label>
+                <textarea id="emergencyDetails" class="form-control" rows="3" placeholder="Please provide additional information"></textarea>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-secondary" onclick="closeModal('sosModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmSOS()">
+                    <i class="fas fa-life-ring"></i> Confirm SOS
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        function initMap() {
+            const map = L.map('map').setView([51.505, -0.09], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Add some traffic markers
+            L.marker([51.5, -0.09])
+                .addTo(map)
+                .bindPopup('<b>Traffic Incident</b><br>Accident reported')
+                .openPopup();
+                
+            L.marker([51.51, -0.1])
+                .addTo(map)
+                .bindPopup('<b>Heavy Congestion</b><br>15 min delay');
+                
+            // Add traffic layer
+            L.polyline([
+                [51.5, -0.1],
+                [51.51, -0.12],
+                [51.52, -0.11]
+            ], {color: 'red', weight: 5}).addTo(map);
+        }
+        
+        // Initialize map when page loads
+        setTimeout(initMap, 500);
+        
+        // Modal functions
+        function showSettings() {
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+        
+        function showHelp() {
+            document.getElementById('helpModal').style.display = 'flex';
+        }
+        
+        function triggerSOS() {
+            document.getElementById('sosModal').style.display = 'flex';
+        }
+        
+        function confirmSOS() {
+            alert('SOS alert confirmed! Help is on the way.');
+            closeModal('sosModal');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Emergency call function
+        function callEmergency(type) {
+            const numbers = {
+                police: '911',
+                ambulance: '912',
+                fire: '913'
+            };
+            
+            alert(`Calling ${type} at ${numbers[type]}`);
+        }
+        
+        // Login and registration functions
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username && password) {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'grid';
+            } else {
+                alert('Please enter username and password');
+            }
+        }
+        
+        function logout() {
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('appContainer').style.display = 'none';
+        }
+        
+        function showRegister() {
+            alert('Registration feature would be implemented here');
+        }
+        
+        function showReports() {
+            alert('Traffic reports would be shown here');
+        }
+        
+        function saveSettings() {
+            alert('Settings saved successfully');
+            closeModal('settingsModal');
+        }
+        
+        // Simulate live data updates
+        setInterval(() => {
+            const vehicles = document.querySelector('.stat-item:nth-child(1) strong');
+            const currentCount = parseInt(vehicles.textContent.replace(/,/g, ''));
+            vehicles.textContent = (currentCount + Math.floor(Math.random() * 10)).toLocaleString();
+            
+            const speed = document.querySelector('.stat-item:nth-child(2) strong');
+            const currentSpeed = parseInt(speed.textContent);
+            speed.textContent = (currentSpeed + Math.floor(Math.random() * 5 - 2)) + ' km/h';
+        }, 5000);
+        
+        // Initialize chart bars animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                const height = bar.style.height;
+                bar.style.height = '0';
+                setTimeout(() => {
+                    bar.style.transition = 'height 1.5s ease-out';
+                    bar.style.height = height;
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>
